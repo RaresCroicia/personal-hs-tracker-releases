@@ -13,6 +13,12 @@ if(-not $asset) { throw "Release $($release.tag_name) has no installer." }
 $setup = Join-Path $env:TEMP $asset.name
 Write-Host "Downloading Tracker $($release.tag_name)..."
 Invoke-WebRequest $asset.browser_download_url -OutFile $setup -UseBasicParsing
+# The installed tracker (found by its folder in the uninstall entry) is closed first, so its files can be replaced.
+$entry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B6244B1D-324E-4357-9ED3-ED4008FDB69F}_is1'
+$folder = (Get-ItemProperty $entry -ErrorAction SilentlyContinue).'Inno Setup: App Path'
+if($folder) {
+	Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith("$folder\", 'OrdinalIgnoreCase') } | Stop-Process -Force -ErrorAction SilentlyContinue
+}
 Write-Host 'The installer is open: pick the folder and the desktop shortcut there.'
 # Wait for the installer only: Start-Process -Wait would also wait for the tracker it starts at the end.
 $process = Start-Process $setup -PassThru
